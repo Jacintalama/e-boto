@@ -1,103 +1,94 @@
-import Image from "next/image";
+"use client";
+import { useState, useMemo } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 
 export default function Home() {
-  return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
+  const router = useRouter();
+  const params = useSearchParams();
+  const nextPath = useMemo(() => params.get("next") || "/dashboard", [params]);
+
+  async function onSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (loading) return; // prevent double submit
+    setLoading(true);
+    setErr(null);
+
+    const controller = new AbortController();
+    const t = setTimeout(() => controller.abort(), 8000); // 8s timeout
+
+    try {
+      const r = await fetch("/api/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password }),
+        signal: controller.signal,
+      }).catch((e) => {
+        // turn AbortError / network issues into a clear message
+        throw new Error(e?.name === "AbortError" ? "Login request timed out" : e.message);
+      });
+
+      clearTimeout(t);
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(j.error || "Login failed");
+
+      router.replace(nextPath); // go to intended page
+    } catch (e: any) {
+      setErr(e?.message || "Login failed");
+    } finally {
+      clearTimeout(t);
+      setLoading(false);
+    }
+  }
+
+  return (
+    <main style={{ minHeight: "100dvh", display: "grid", placeItems: "center" }}>
+      <form onSubmit={onSubmit} style={{
+        width: "100%", maxWidth: 380, padding: 20, border: "1px solid #e5e7eb",
+        borderRadius: 12
+      }}>
+        <h1 style={{ fontSize: 24, marginBottom: 12 }}>Login</h1>
+
+        <label style={{ display: "block", fontSize: 14, marginBottom: 6 }}>Username</label>
+        <input
+          type="text"
+          value={username}
+          onChange={e => setUsername(e.target.value)}
+          required
+          placeholder="admin"
+          autoComplete="username"
+          style={{ width: "100%", padding: 10, borderRadius: 8, border: "1px solid #d1d5db", marginBottom: 12 }}
+        />
+
+        <label style={{ display: "block", fontSize: 14, marginBottom: 6 }}>Password</label>
+        <input
+          type="password"
+          value={password}
+          onChange={e => setPassword(e.target.value)}
+          required
+          placeholder="••••••••"
+          autoComplete="current-password"
+          style={{ width: "100%", padding: 10, borderRadius: 8, border: "1px solid #d1d5db", marginBottom: 16 }}
+        />
+
+        {err && <p style={{ color: "crimson", marginBottom: 8 }}>{err}</p>}
+
+        <button
+          type="submit"
+          disabled={loading}
+          style={{
+            width: "100%", padding: 12, borderRadius: 10, border: "none",
+            background: "#111827", color: "white", cursor: loading ? "default" : "pointer",
+            opacity: loading ? 0.7 : 1
+          }}
         >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
+          {loading ? "Signing in..." : "Sign in"}
+        </button>
+      </form>
+    </main>
   );
 }
