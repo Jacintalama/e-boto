@@ -2,35 +2,52 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
-type Props = { variant?: "link" | "button" };
-
-export default function LogoutButton({ variant = "link" }: Props) {
+export default function LogoutButton({ asLink = false }: { asLink?: boolean }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
 
-  async function onLogout() {
+  async function onClick(e?: React.MouseEvent) {
+    e?.preventDefault();
     if (loading) return;
     setLoading(true);
     try {
-      await fetch("/api/logout", { method: "POST" });
+      const r = await fetch("/api/auth/logout", { method: "POST", credentials: "include" })
+      // even if backend fails, force client-side clear by navigating away
+      if (!r.ok) console.warn("Logout non-200:", await r.text().catch(() => ""));
+    } catch (err) {
+      console.warn("Logout error:", (err as Error)?.message);
     } finally {
-      router.replace("/");
-      router.refresh();
       setLoading(false);
+      router.replace("/login");
     }
   }
 
-  const cls =
-    variant === "link"
-      ? "text-white px-2.5 py-1.5 rounded-md hover:bg-indigo-600/90 transition-colors"
-      : "text-white/90 bg-white/10 hover:bg-white/20 border border-white/20 px-3 py-2 rounded-md";
+  if (asLink) {
+    return (
+      <a
+        href="/login"
+        onClick={onClick}
+        style={{ cursor: loading ? "default" : "pointer", opacity: loading ? 0.6 : 1 }}
+        aria-disabled={loading}
+      >
+        {loading ? "Logging out…" : "Logout"}
+      </a>
+    );
+  }
 
   return (
     <button
-      onClick={onLogout}
+      onClick={onClick}
       disabled={loading}
-      className={`${cls} ${loading ? "opacity-70" : ""}`}
-      title="Logout"
+      style={{
+        padding: "8px 12px",
+        borderRadius: 10,
+        border: "1px solid #db1540ff",
+        background: "red",
+        cursor: loading ? "default" : "pointer",
+        opacity: loading ? 0.7 : 1,
+      }}
+      aria-busy={loading}
     >
       {loading ? "Logging out…" : "Logout"}
     </button>
