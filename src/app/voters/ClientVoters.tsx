@@ -17,7 +17,9 @@ export default function ClientVoters() {
 
   // NEW: search & filter
   const [q, setQ] = useState(""); // text search
-  const [statusFilter, setStatusFilter] = useState<"all" | "voted" | "not">("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | "voted" | "not">(
+    "all"
+  );
 
   // edit modal
   const [modalOpen, setModalOpen] = useState(false);
@@ -45,11 +47,14 @@ export default function ClientVoters() {
     setLoading(true);
     setErr(null);
     try {
-      const res = await fetch(`/api/voters?department=${encodeURIComponent(dep)}`, {
-        cache: "no-store",
-        credentials: "include",
-        headers: { Accept: "application/json" },
-      });
+      const res = await fetch(
+        `/api/voters?department=${encodeURIComponent(dep)}`,
+        {
+          cache: "no-store",
+          credentials: "include",
+          headers: { Accept: "application/json" },
+        }
+      );
 
       if (res.status === 401) {
         router.replace(`/login?next=${encodeURIComponent(pathname)}`);
@@ -63,7 +68,9 @@ export default function ClientVoters() {
         let msg = `Failed to load voters (HTTP ${res.status})`;
         try {
           const ct = res.headers.get("content-type") || "";
-          msg = ct.includes("application/json") ? (await res.json()).error || msg : (await res.text()) || msg;
+          msg = ct.includes("application/json")
+            ? (await res.json()).error || msg
+            : (await res.text()) || msg;
         } catch {}
         throw new Error(msg);
       }
@@ -85,7 +92,9 @@ export default function ClientVoters() {
 
   const btn = (l: Level) =>
     `px-3 py-1.5 rounded-md border ${
-      level === l ? "bg-[#0F4C75] text-white border-[#0F4C75]" : "border-gray-300 hover:bg-gray-100"
+      level === l
+        ? "bg-[#0F4C75] text-white border-[#0F4C75]"
+        : "border-gray-300 hover:bg-gray-100"
     }`;
 
   function openEdit(v: Voter) {
@@ -179,7 +188,13 @@ export default function ClientVoters() {
       setRows((prev) =>
         prev.map((x) =>
           x.id === editing.id
-            ? { ...x, fullName: payload.fullName, course: payload.course, year: payload.year, status: payload.status }
+            ? {
+                ...x,
+                fullName: payload.fullName,
+                course: payload.course,
+                year: payload.year,
+                status: payload.status,
+              }
             : x
         )
       );
@@ -197,7 +212,10 @@ export default function ClientVoters() {
     if (!confirm(`Delete voter "${v.fullName}"?`)) return;
     try {
       setDelId(v.id);
-      const res = await fetch(`/api/voters/${v.id}`, { method: "DELETE", credentials: "include" });
+      const res = await fetch(`/api/voters/${v.id}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
 
       if (res.status === 401) {
         router.replace(`/login?next=${encodeURIComponent(pathname)}`);
@@ -228,7 +246,9 @@ export default function ClientVoters() {
       if (statusFilter === "not" && r.status !== 0) return false;
 
       if (!needle) return true;
-      const hay = `${r.schoolId} ${r.fullName} ${r.course ?? ""} ${r.year} ${r.department}`.toLowerCase();
+      const hay = `${r.schoolId} ${r.fullName} ${r.course ?? ""} ${r.year} ${
+        r.department
+      }`.toLowerCase();
       return hay.includes(needle);
     });
   }, [rows, q, statusFilter]);
@@ -242,7 +262,9 @@ export default function ClientVoters() {
           <div className="min-w-0">
             <h1 className="text-lg font-semibold">Voters</h1>
             <p className="text-xs text-gray-600">
-              Department: <b>{level}</b> • Showing {visibleRows.length} of {rows.length} • Voted (shown): {visibleVoted} • Voted (total): {totalVoted}
+              Department: <b>{level}</b> • Showing {visibleRows.length} of{" "}
+              {rows.length} • Voted (shown): {visibleVoted} • Voted (total):{" "}
+              {totalVoted}
             </p>
           </div>
 
@@ -329,13 +351,19 @@ export default function ClientVoters() {
               <tbody className="divide-y divide-gray-200 text-sm">
                 {loading ? (
                   <tr>
-                    <td colSpan={7} className="px-4 py-8 text-center text-gray-500">
+                    <td
+                      colSpan={7}
+                      className="px-4 py-8 text-center text-gray-500"
+                    >
                       Loading…
                     </td>
                   </tr>
                 ) : visibleRows.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="px-4 py-8 text-center text-gray-500">
+                    <td
+                      colSpan={7}
+                      className="px-4 py-8 text-center text-gray-500"
+                    >
                       No voters found.
                     </td>
                   </tr>
@@ -349,10 +377,13 @@ export default function ClientVoters() {
                       <td className="px-4 py-2">
                         <span
                           className={`px-2 py-1 rounded text-xs ${
-                            v.status === 1 ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"
+                            v.status === 1
+                              ? "bg-green-100 text-green-800"
+                              : "bg-gray-100 text-gray-800"
                           }`}
                         >
-                          {v.status} {v.status === 1 ? "(Voted)" : "(Not Voted)"}
+                          {v.status}{" "}
+                          {v.status === 1 ? "(Voted)" : "(Not Voted)"}
                         </span>
                       </td>
                       <td className="px-4 py-2">{v.department}</td>
@@ -392,7 +423,216 @@ export default function ClientVoters() {
       />
 
       {/* Edit Modal placeholder (your existing modal code) */}
-      {modalOpen && editing && <></>}
+      {/* Edit Modal */}
+      {modalOpen && editing && (
+        <div
+          className="fixed inset-0 z-[100] bg-black/30 flex items-center justify-center px-4"
+          role="dialog"
+          aria-modal="true"
+          onClick={(e) => {
+            // click outside closes
+            if (e.currentTarget === e.target) closeEdit();
+          }}
+        >
+          <form
+            onSubmit={saveEdit}
+            className="w-full max-w-lg rounded-xl bg-white shadow-lg border border-gray-200 p-5"
+            onKeyDown={(e) => {
+              if (e.key === "Escape") {
+                e.preventDefault();
+                closeEdit();
+              }
+            }}
+          >
+            <div className="flex items-start justify-between gap-4 mb-3">
+              <h2 className="text-lg font-semibold">
+                Edit Voter —{" "}
+                <span className="text-gray-600">{editing.fullName}</span>
+              </h2>
+              <button
+                type="button"
+                onClick={closeEdit}
+                className="px-2 py-1 text-sm rounded-md hover:bg-gray-100"
+                title="Close"
+              >
+                ✕
+              </button>
+            </div>
+
+            {formErr && (
+              <div className="mb-3 rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-800">
+                {formErr}
+              </div>
+            )}
+            {formMsg && (
+              <div className="mb-3 rounded-md border border-green-300 bg-green-50 px-3 py-2 text-sm text-green-800">
+                {formMsg}
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {/* Full Name */}
+              <div className="md:col-span-2">
+                <label className="block text-sm mb-1">Full Name</label>
+                <input
+                  autoFocus
+                  type="text"
+                  className="w-full rounded-md border border-gray-300 px-3 py-2"
+                  value={form.fullName}
+                  onChange={(e) => setField("fullName", e.target.value)}
+                  required
+                />
+              </div>
+
+              {/* Course */}
+              <div>
+                <label className="block text-sm mb-1">Course</label>
+                <input
+                  type="text"
+                  className="w-full rounded-md border border-gray-300 px-3 py-2"
+                  value={form.course}
+                  onChange={(e) => setField("course", e.target.value)}
+                  placeholder="—"
+                />
+              </div>
+
+              {/* Year */}
+              <div>
+                <label className="block text-sm mb-1">Year</label>
+                <input
+                  type="text"
+                  className="w-full rounded-md border border-gray-300 px-3 py-2"
+                  value={form.year}
+                  onChange={(e) => setField("year", e.target.value)}
+                  required
+                />
+              </div>
+
+              {/* Status */}
+              <div>
+                <label className="block text-sm mb-1">Status</label>
+                <select
+                  className="w-full rounded-md border border-gray-300 px-3 py-2"
+                  value={form.status}
+                  onChange={(e) =>
+                    setField("status", Number(e.target.value) as 0 | 1)
+                  }
+                >
+                  <option value={1}>Voted</option>
+                  <option value={0}>Not Voted</option>
+                </select>
+              </div>
+
+              {/* New Password (optional) */}
+              <div className="md:col-span-2">
+                <label className="block text-sm mb-1">
+                  New Password (optional)
+                </label>
+                <div className="relative">
+                  <input
+                    type={form.showPwd ? "text" : "password"}
+                    className="w-full rounded-md border border-gray-300 px-3 py-2 pr-10"
+                    value={form.password}
+                    onChange={(e) => setField("password", e.target.value)}
+                    placeholder="Leave blank to keep current password"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setField("showPwd", !form.showPwd)}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded hover:bg-gray-100"
+                    title={form.showPwd ? "Hide password" : "Show password"}
+                    aria-pressed={form.showPwd}
+                  >
+                    {/* simple eye icon */}
+                    <svg
+                      viewBox="0 0 24 24"
+                      width={20}
+                      height={20}
+                      aria-hidden="true"
+                    >
+                      {form.showPwd ? (
+                        <>
+                          <path
+                            d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12Z"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="1.5"
+                          />
+                          <circle
+                            cx="12"
+                            cy="12"
+                            r="3"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="1.5"
+                          />
+                        </>
+                      ) : (
+                        <>
+                          <path
+                            d="M3 3l18 18"
+                            stroke="currentColor"
+                            strokeWidth="1.5"
+                            fill="none"
+                            strokeLinecap="round"
+                          />
+                          <path
+                            d="M1 12s4-7 11-7c2.6 0 4.9.9 6.8 2.1M23 12s-4 7-11 7c-2.6 0-4.9-.9-6.8-2.1"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="1.5"
+                          />
+                          <path
+                            d="M9.5 9.5A3.5 3.5 0 00112 15a3.5 3.5 0 003-1.8"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="1.5"
+                          />
+                        </>
+                      )}
+                    </svg>
+                  </button>
+                </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  Leave password blank if you don’t want to change it.
+                </p>
+              </div>
+
+              {/* Confirm New Password */}
+              <div className="md:col-span-2">
+                <label className="block text-sm mb-1">
+                  Confirm New Password
+                </label>
+                <input
+                  type={form.showPwd ? "text" : "password"}
+                  className="w-full rounded-md border border-gray-300 px-3 py-2"
+                  value={form.confirmPassword}
+                  onChange={(e) => setField("confirmPassword", e.target.value)}
+                  placeholder="Retype new password"
+                />
+              </div>
+            </div>
+
+            <div className="mt-5 flex items-center justify-end gap-2">
+              <button
+                type="button"
+                className="px-3 py-1.5 rounded-md border border-gray-300 hover:bg-gray-100"
+                onClick={closeEdit}
+                disabled={saving}
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="px-3 py-1.5 rounded-md bg-[#0F4C75] text-white hover:bg-[#0C3D5E] disabled:opacity-60"
+                disabled={saving}
+              >
+                {saving ? "Saving…" : "Save changes"}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
     </>
   );
 }

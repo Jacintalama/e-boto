@@ -6,7 +6,8 @@ import LogoutButton from "./LogoutButton";
 
 type Role = "admin" | "student" | null;
 
-const linkClass = "px-2.5 py-1.5 rounded-md hover:bg-white/10 transition-colors";
+const linkClass =
+  "px-2.5 py-1.5 rounded-md hover:bg-white/10 transition-colors";
 
 export default function Navbar() {
   const [role, setRole] = useState<Role>(null);
@@ -33,9 +34,11 @@ export default function Navbar() {
 
   // ✅ default to "/" while role unknown to avoid prefetching /login
   const homeHref =
-    role === "admin" ? "/dashboard"
-    : role === "student" ? "/student-dashboard"
-    : "/";
+    role === "admin"
+      ? "/dashboard"
+      : role === "student"
+      ? "/student-dashboard"
+      : "/";
 
   return (
     <header className="sticky top-0 z-50 w-full bg-[#0F4C75] text-white border-b border-[#0C3D5E]">
@@ -72,6 +75,17 @@ export default function Navbar() {
                 Voters
               </Link>
             </>
+          )}
+
+          {/* 👇 ADD THIS: visible only for students */}
+          {role === "student" && (
+            <Link
+              href="/student/change-profile"
+              prefetch={false}
+              className={linkClass}
+            >
+              Profile
+            </Link>
           )}
 
           <Link href="/about" className={linkClass}>

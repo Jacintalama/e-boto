@@ -1,6 +1,6 @@
 // src/app/candidates/ClientCandidates.tsx
 "use client";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 
@@ -59,7 +59,7 @@ export default function CandidatesClient() {
   // UI state
   const [menuOpen, setMenuOpen] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
-  const [level, setLevel] = useState<Level | null>(null);
+  const [level, setLevel] = useState<Level | null>(null); // for modal (not the filter)
   const [editingId, setEditingId] = useState<string | null>(null);
 
   const [loading, setLoading] = useState(true);
@@ -162,7 +162,65 @@ export default function CandidatesClient() {
     setModalOpen(true);
   }
 
-  // form state
+  // ====== FILTERS ======
+  const [q, setQ] = useState(""); // text search
+  const [levelFilter, setLevelFilter] = useState<"All" | Level>("All");
+  const [positionFilter, setPositionFilter] = useState<"All" | Position>("All");
+  const [genderFilter, setGenderFilter] = useState<"All" | "Male" | "Female">(
+    "All"
+  );
+  const [partyFilter, setPartyFilter] = useState<"All" | string>("All");
+
+  const partyOptions = useMemo(() => {
+    const set = new Set<string>();
+    candidates.forEach((c) => {
+      const p = (c.partyList || "").trim();
+      if (p) set.add(p);
+    });
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [candidates]);
+
+  const visible = useMemo(() => {
+    const needle = q.trim().toLowerCase();
+    let arr = candidates.slice();
+
+    if (levelFilter !== "All") arr = arr.filter((c) => c.level === levelFilter);
+    if (positionFilter !== "All")
+      arr = arr.filter((c) => c.position === positionFilter);
+    if (genderFilter !== "All")
+      arr = arr.filter((c) => c.gender === genderFilter);
+    if (partyFilter !== "All")
+      arr = arr.filter(
+        (c) => (c.partyList || "").trim().toLowerCase() === partyFilter.toLowerCase()
+      );
+
+    if (needle) {
+      arr = arr.filter((c) => {
+        const full = `${c.firstName} ${c.middleName || ""} ${c.lastName}`
+          .toLowerCase()
+          .trim();
+        const fields = [
+          full,
+          c.position.toLowerCase(),
+          (c.partyList || "").toLowerCase(),
+          (c.year || "").toLowerCase(),
+          (c.level || "").toString().toLowerCase(),
+        ].join(" ");
+        return fields.includes(needle);
+      });
+    }
+    return arr;
+  }, [candidates, q, levelFilter, positionFilter, genderFilter, partyFilter]);
+
+  function resetFilters() {
+    setQ("");
+    setLevelFilter("All");
+    setPositionFilter("All");
+    setGenderFilter("All");
+    setPartyFilter("All");
+  }
+
+  // ====== FORM (modal) ======
   const [position, setPosition] = useState<Position>("President");
   const [partyList, setPartyList] = useState("");
   const [firstName, setFirstName] = useState("");
@@ -217,9 +275,7 @@ export default function CandidatesClient() {
     if (photo) formData.append("photo", photo);
 
     try {
-      const url = editingId
-        ? `/api/candidates/${editingId}`
-        : `/api/candidates`;
+      const url = editingId ? `/api/candidates/${editingId}` : `/api/candidates`;
       const res = await fetch(url, {
         method: editingId ? "PUT" : "POST",
         body: formData,
@@ -236,9 +292,7 @@ export default function CandidatesClient() {
       const mapped = mapCandidate(saved);
 
       if (editingId) {
-        setCandidates((prev) =>
-          prev.map((c) => (c.id === editingId ? mapped : c))
-        );
+        setCandidates((prev) => prev.map((c) => (c.id === editingId ? mapped : c)));
       } else {
         setCandidates((prev) => [mapped, ...prev]);
       }
@@ -291,7 +345,7 @@ export default function CandidatesClient() {
     <>
       {/* Navbar is rendered in the server page */}
       <div className="max-w-screen-xl mx-auto px-4 py-6">
-        <div className="mb-4 flex items-center justify-between">
+        <div className="mb-4 flex items-center justify-between gap-3">
           <h1 className="text-lg font-semibold">Candidate List</h1>
 
           {/* Add Candidate dropdown */}
@@ -325,21 +379,129 @@ export default function CandidatesClient() {
                 role="menu"
                 className="absolute right-0 mt-2 w-44 rounded-md bg-white text-gray-800 shadow-lg ring-1 ring-black/5 overflow-hidden z-20"
               >
-                {(["Elementary", "JHS", "SHS", "College"] as Level[]).map(
-                  (lvl) => (
-                    <button
-                      key={lvl}
-                      type="button"
-                      className={menuItemClass}
-                      onClick={() => openFor(lvl)}
-                      role="menuitem"
-                    >
-                      {lvl}
-                    </button>
-                  )
-                )}
+                {(["Elementary", "JHS", "SHS", "College"] as Level[]).map((lvl) => (
+                  <button
+                    key={lvl}
+                    type="button"
+                    className={menuItemClass}
+                    onClick={() => openFor(lvl)}
+                    role="menuitem"
+                  >
+                    {lvl}
+                  </button>
+                ))}
               </div>
             )}
+          </div>
+        </div>
+
+        {/* Filters */}
+        <div className="mb-3 rounded-lg border border-gray-200 bg-white p-3">
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Search */}
+            <div className="relative">
+              <input
+                type="text"
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                placeholder="Search name, party, position, year…"
+                className="w-56 md:w-72 rounded-md border border-gray-300 px-3 py-1.5 text-sm"
+              />
+              {q && (
+                <button
+                  type="button"
+                  onClick={() => setQ("")}
+                  className="absolute right-1 top-1/2 -translate-y-1/2 px-2 py-0.5 text-xs rounded-md hover:bg-gray-100"
+                  aria-label="Clear search"
+                  title="Clear"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+
+            {/* Level */}
+            <select
+              value={levelFilter}
+              onChange={(e) => setLevelFilter(e.target.value as any)}
+              className="rounded-md border border-gray-300 px-2.5 py-1.5 text-sm"
+              title="Filter by level"
+            >
+              <option value="All">All Levels</option>
+              <option value="Elementary">Elementary</option>
+              <option value="JHS">JHS</option>
+              <option value="SHS">SHS</option>
+              <option value="College">College</option>
+            </select>
+
+            {/* Position */}
+            <select
+              value={positionFilter}
+              onChange={(e) => setPositionFilter(e.target.value as any)}
+              className="rounded-md border border-gray-300 px-2.5 py-1.5 text-sm"
+              title="Filter by position"
+            >
+              <option value="All">All Positions</option>
+              {(
+                [
+                  "President",
+                  "Vice President",
+                  "Secretary",
+                  "Treasurer",
+                  "Auditor",
+                  "Representative",
+                ] as Position[]
+              ).map((p) => (
+                <option key={p} value={p}>
+                  {p}
+                </option>
+              ))}
+            </select>
+
+            {/* Gender */}
+            <select
+              value={genderFilter}
+              onChange={(e) => setGenderFilter(e.target.value as any)}
+              className="rounded-md border border-gray-300 px-2.5 py-1.5 text-sm"
+              title="Filter by gender"
+            >
+              <option value="All">All Genders</option>
+              <option value="Male">Male</option>
+              <option value="Female">Female</option>
+            </select>
+
+            {/* Party */}
+            <select
+              value={partyFilter}
+              onChange={(e) => setPartyFilter(e.target.value)}
+              className="rounded-md border border-gray-300 px-2.5 py-1.5 text-sm"
+              title="Filter by party"
+            >
+              <option value="All">All Parties</option>
+              {partyOptions.map((p) => (
+                <option key={p} value={p}>
+                  {p}
+                </option>
+              ))}
+            </select>
+
+            <button
+              type="button"
+              onClick={resetFilters}
+              className="px-3 py-1.5 rounded-md border border-gray-300 hover:bg-gray-100 text-sm"
+              title="Reset all filters"
+            >
+              Reset
+            </button>
+
+            <button
+              className="ml-auto px-3 py-1.5 rounded-md border border-gray-300 hover:bg-gray-100"
+              onClick={() => loadCandidates()}
+              disabled={loading}
+              title="Refresh list"
+            >
+              {loading ? "Refreshing…" : "Refresh"}
+            </button>
           </div>
         </div>
 
@@ -368,27 +530,19 @@ export default function CandidatesClient() {
               <tbody className="divide-y divide-gray-200 text-sm">
                 {loading ? (
                   <tr>
-                    <td
-                      colSpan={7}
-                      className="px-4 py-8 text-center text-gray-500"
-                    >
+                    <td colSpan={7} className="px-4 py-8 text-center text-gray-500">
                       Loading…
                     </td>
                   </tr>
-                ) : candidates.length === 0 ? (
+                ) : visible.length === 0 ? (
                   <tr>
-                    <td
-                      colSpan={7}
-                      className="px-4 py-8 text-center text-gray-500"
-                    >
-                      No candidates yet.
+                    <td colSpan={7} className="px-4 py-8 text-center text-gray-500">
+                      No candidates match your filters.
                     </td>
                   </tr>
                 ) : (
-                  candidates.map((c) => {
-                    const full = `${c.firstName} ${
-                      c.middleName ? c.middleName + " " : ""
-                    }${c.lastName}`;
+                  visible.map((c) => {
+                    const full = `${c.firstName} ${c.middleName ? c.middleName + " " : ""}${c.lastName}`;
                     return (
                       <tr key={c.id} className="hover:bg-gray-50">
                         <td className="px-4 py-2">
@@ -407,9 +561,7 @@ export default function CandidatesClient() {
                             </div>
                           )}
                         </td>
-                        <td className="px-4 py-2 font-medium text-gray-900">
-                          {full}
-                        </td>
+                        <td className="px-4 py-2 font-medium text-gray-900">{full}</td>
                         <td className="px-4 py-2">{c.position}</td>
                         <td className="px-4 py-2">{c.partyList}</td>
                         <td className="px-4 py-2">{c.gender}</td>
@@ -452,19 +604,10 @@ export default function CandidatesClient() {
           <div className="absolute inset-0 flex items-center justify-center p-4">
             <div className="w-full max-w-2xl rounded-xl bg-white shadow-xl">
               <div className="flex items-center justify-between px-5 py-4 border-b">
-                <h2
-                  id="add-candidate-title"
-                  className="text-base md:text-lg font-semibold text-gray-900"
-                >
-                  {editingId
-                    ? `Edit Candidate (${level})`
-                    : `Add Candidate (${level})`}
+                <h2 id="add-candidate-title" className="text-base md:text-lg font-semibold text-gray-900">
+                  {editingId ? `Edit Candidate (${level})` : `Add Candidate (${level})`}
                 </h2>
-                <button
-                  onClick={closeModal}
-                  className="p-2 rounded-md hover:bg-gray-100"
-                  aria-label="Close"
-                >
+                <button onClick={closeModal} className="p-2 rounded-md hover:bg-gray-100" aria-label="Close">
                   ✕
                 </button>
               </div>
@@ -480,14 +623,7 @@ export default function CandidatesClient() {
                       onChange={(e) => setPosition(e.target.value as any)}
                       required
                     >
-                      {[
-                        "President",
-                        "Vice President",
-                        "Secretary",
-                        "Treasurer",
-                        "Auditor",
-                        "Representative",
-                      ].map((p) => (
+                      {(["President","Vice President","Secretary","Treasurer","Auditor","Representative"] as Position[]).map((p) => (
                         <option key={p} value={p}>
                           {p}
                         </option>
@@ -497,9 +633,7 @@ export default function CandidatesClient() {
 
                   {/* Party List */}
                   <div className="flex flex-col">
-                    <label className="text-sm font-medium mb-1">
-                      Party List
-                    </label>
+                    <label className="text-sm font-medium mb-1">Party List</label>
                     <input
                       type="text"
                       className="rounded-md border border-gray-300 px-3 py-2"
@@ -512,9 +646,7 @@ export default function CandidatesClient() {
 
                   {/* First Name */}
                   <div className="flex flex-col">
-                    <label className="text-sm font-medium mb-1">
-                      First Name
-                    </label>
+                    <label className="text-sm font-medium mb-1">First Name</label>
                     <input
                       type="text"
                       className="rounded-md border border-gray-300 px-3 py-2"
@@ -526,9 +658,7 @@ export default function CandidatesClient() {
 
                   {/* Middle Name */}
                   <div className="flex flex-col">
-                    <label className="text-sm font-medium mb-1">
-                      Middle Name
-                    </label>
+                    <label className="text-sm font-medium mb-1">Middle Name</label>
                     <input
                       type="text"
                       className="rounded-md border border-gray-300 px-3 py-2"
@@ -539,9 +669,7 @@ export default function CandidatesClient() {
 
                   {/* Last Name */}
                   <div className="flex flex-col">
-                    <label className="text-sm font-medium mb-1">
-                      Last Name
-                    </label>
+                    <label className="text-sm font-medium mb-1">Last Name</label>
                     <input
                       type="text"
                       className="rounded-md border border-gray-300 px-3 py-2"
@@ -557,9 +685,7 @@ export default function CandidatesClient() {
                     <select
                       className="rounded-md border border-gray-300 px-3 py-2"
                       value={gender}
-                      onChange={(e) =>
-                        setGender(e.target.value as "Male" | "Female")
-                      }
+                      onChange={(e) => setGender(e.target.value as "Male" | "Female")}
                       required
                     >
                       <option value="Male">Male</option>
@@ -592,9 +718,7 @@ export default function CandidatesClient() {
 
                   {/* Photo */}
                   <div className="flex flex-col md:col-span-2">
-                    <label className="text-sm font-medium mb-1">
-                      Candidate Photo
-                    </label>
+                    <label className="text-sm font-medium mb-1">Candidate Photo</label>
                     <input
                       type="file"
                       accept="image/*"

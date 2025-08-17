@@ -2,22 +2,35 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
+const PUBLIC_FILE = /\.(.*)$/;
+
 export function middleware(req: NextRequest) {
-  const token = req.cookies.get("token")?.value;
-  const path = req.nextUrl.pathname;
+  const { pathname, search } = req.nextUrl;
 
-  const isAuthPage = path === "/";
-  const isProtected = path.startsWith("/dashboard");
+  // Allow API & static
+  if (pathname.startsWith("/api") || PUBLIC_FILE.test(pathname)) {
+    return NextResponse.next();
+  }
 
-  if (!token && isProtected) {
-    const url = new URL("/", req.url);
-    url.searchParams.set("next", path);
+  const hasToken = Boolean(req.cookies.get("token")?.value);
+
+  // Protected zones (admin + student)
+  const isProtected =
+    pathname.startsWith("/dashboard") ||
+    pathname === "/student-dashboard" ||
+    pathname.startsWith("/student/");
+
+  if (!hasToken && isProtected) {
+    const url = req.nextUrl.clone();
+    url.pathname = "/login";
+    url.searchParams.set("next", pathname + search);
     return NextResponse.redirect(url);
   }
-  if (token && isAuthPage) {
-    return NextResponse.redirect(new URL("/dashboard", req.url));
-  }
+
+  // No redirects for logged-in users here (avoid loops)
   return NextResponse.next();
 }
 
-export const config = { matcher: ["/", "/dashboard/:path*"] };
+export const config = {
+  matcher: ["/((?!_next/|favicon.ico|images/|public/|uploads/|api/).*)"],
+};

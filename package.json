@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "geist": "^1.4.2",
+    "jose": "^6.0.12",
     "jsonwebtoken": "^9.0.2",
     "next": "15.4.6",
     "react": "19.1.0",
