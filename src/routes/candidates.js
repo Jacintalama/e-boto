@@ -1,8 +1,9 @@
-const express = require("express");
-const router = express.Router();
+// src/routes/candidates.js
+import { Router } from "express";
+const router = Router();
 
 router.get("/", (_req, res) => {
   res.json([]);
 });
 
-module.exports = router;
+export default router;

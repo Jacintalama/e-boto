@@ -49,7 +49,8 @@ export default function AddVoterModal({
     const chars =
       "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%^&*";
     let out = "";
-    for (let i = 0; i < len; i++) out += chars[Math.floor(Math.random() * chars.length)];
+    for (let i = 0; i < len; i++)
+      out += chars[Math.floor(Math.random() * chars.length)];
     setPassword(out);
     setConfirm(out);
     setShowPwd(true);
@@ -111,8 +112,9 @@ export default function AddVoterModal({
       setStatus(0);
       setDepartment(defaultDepartment);
       onClose();
-    } catch (e: any) {
-      setErr(e?.message || "Failed to create voter");
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Failed to create voter";
+      setErr(msg);
     } finally {
       setSaving(false);
     }
@@ -121,22 +123,38 @@ export default function AddVoterModal({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-40" aria-modal="true" role="dialog" aria-labelledby="add-voter-title">
+    <div
+      className="fixed inset-0 z-40"
+      aria-modal="true"
+      role="dialog"
+      aria-labelledby="add-voter-title"
+    >
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
       <div className="absolute inset-0 flex items-center justify-center p-4">
         <div className="w-full max-w-2xl rounded-xl bg-white shadow-xl">
           <div className="flex items-center justify-between px-5 py-4 border-b">
-            <h2 id="add-voter-title" className="text-base md:text-lg font-semibold text-gray-900">
+            <h2
+              id="add-voter-title"
+              className="text-base md:text-lg font-semibold text-gray-900"
+            >
               Manual Voter Insertion
             </h2>
-            <button onClick={onClose} className="p-2 rounded-md hover:bg-gray-100" aria-label="Close">✕</button>
+            <button
+              onClick={onClose}
+              className="p-2 rounded-md hover:bg-gray-100"
+              aria-label="Close"
+            >
+              ✕
+            </button>
           </div>
 
           <form onSubmit={onSubmit} className="px-5 py-4 space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* School ID */}
               <div>
-                <label className="text-sm font-medium mb-1 block">School ID</label>
+                <label className="text-sm font-medium mb-1 block">
+                  School ID
+                </label>
                 <input
                   type="text"
                   className="w-full rounded-md border border-gray-300 px-3 py-2"
@@ -148,7 +166,9 @@ export default function AddVoterModal({
 
               {/* Department */}
               <div>
-                <label className="text-sm font-medium mb-1 block">Department</label>
+                <label className="text-sm font-medium mb-1 block">
+                  Department
+                </label>
                 <select
                   className="w-full rounded-md border border-gray-300 px-3 py-2"
                   value={department}
@@ -156,14 +176,18 @@ export default function AddVoterModal({
                   required
                 >
                   {["College", "Elementary", "SHS", "JHS"].map((d) => (
-                    <option key={d} value={d}>{d}</option>
+                    <option key={d} value={d}>
+                      {d}
+                    </option>
                   ))}
                 </select>
               </div>
 
               {/* Full Name */}
               <div className="md:col-span-2">
-                <label className="text-sm font-medium mb-1 block">Full Name</label>
+                <label className="text-sm font-medium mb-1 block">
+                  Full Name
+                </label>
                 <input
                   type="text"
                   className="w-full rounded-md border border-gray-300 px-3 py-2"
@@ -208,7 +232,9 @@ export default function AddVoterModal({
 
               {/* Password + helpers */}
               <div className="md:col-span-2">
-                <label className="text-sm font-medium mb-1 block">Password</label>
+                <label className="text-sm font-medium mb-1 block">
+                  Password
+                </label>
                 <div className="flex gap-2">
                   <input
                     type={showPwd ? "text" : "password"}
@@ -237,7 +263,9 @@ export default function AddVoterModal({
 
               {/* Confirm Password */}
               <div className="md:col-span-2">
-                <label className="text-sm font-medium mb-1 block">Confirm Password</label>
+                <label className="text-sm font-medium mb-1 block">
+                  Confirm Password
+                </label>
                 <input
                   type={showPwd ? "text" : "password"}
                   className="w-full rounded-md border border-gray-300 px-3 py-2"
@@ -249,7 +277,9 @@ export default function AddVoterModal({
 
               {/* Status */}
               <div className="md:col-span-2">
-                <label className="text-sm font-medium mb-1 block">Voting Status</label>
+                <label className="text-sm font-medium mb-1 block">
+                  Voting Status
+                </label>
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
@@ -264,7 +294,9 @@ export default function AddVoterModal({
                   </button>
                   <span
                     className={`px-2 py-1 rounded text-xs ${
-                      status === 1 ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"
+                      status === 1
+                        ? "bg-green-100 text-green-800"
+                        : "bg-gray-100 text-gray-800"
                     }`}
                   >
                     {status === 1 ? "1 (Voted)" : "0 (Not Voted)"}

@@ -121,14 +121,16 @@ export default function CandidatesClient() {
           msg = ct.includes("application/json")
             ? (await res.json()).error || msg
             : (await res.text()) || msg;
-        } catch {}
+        } catch {
+          /* ignore parse errors */
+        }
         throw new Error(msg);
       }
 
       const data: CandidateApi[] = await res.json();
       setCandidates(data.map(mapCandidate));
-    } catch (e: any) {
-      setError(e?.message || "Failed to load candidates");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to load candidates");
     } finally {
       setLoading(false);
     }
@@ -300,8 +302,8 @@ export default function CandidatesClient() {
       closeModal();
       resetForm();
       setEditingId(null);
-    } catch (e: any) {
-      setError(e?.message || "Failed to save candidate");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to save candidate");
     } finally {
       setSaving(false);
     }
@@ -322,8 +324,8 @@ export default function CandidatesClient() {
       if (!res.ok) throw new Error(await res.text());
 
       setCandidates((prev) => prev.filter((x) => x.id !== id));
-    } catch (e: any) {
-      alert(e?.message || "Failed to delete");
+    } catch (e) {
+      alert(e instanceof Error ? e.message : "Failed to delete");
     }
   }
 
@@ -423,7 +425,7 @@ export default function CandidatesClient() {
             {/* Level */}
             <select
               value={levelFilter}
-              onChange={(e) => setLevelFilter(e.target.value as any)}
+              onChange={(e) => setLevelFilter(e.target.value as Level | "All")}
               className="rounded-md border border-gray-300 px-2.5 py-1.5 text-sm"
               title="Filter by level"
             >
@@ -437,7 +439,9 @@ export default function CandidatesClient() {
             {/* Position */}
             <select
               value={positionFilter}
-              onChange={(e) => setPositionFilter(e.target.value as any)}
+              onChange={(e) =>
+                setPositionFilter(e.target.value as Position | "All")
+              }
               className="rounded-md border border-gray-300 px-2.5 py-1.5 text-sm"
               title="Filter by position"
             >
@@ -461,7 +465,9 @@ export default function CandidatesClient() {
             {/* Gender */}
             <select
               value={genderFilter}
-              onChange={(e) => setGenderFilter(e.target.value as any)}
+              onChange={(e) =>
+                setGenderFilter(e.target.value as "All" | "Male" | "Female")
+              }
               className="rounded-md border border-gray-300 px-2.5 py-1.5 text-sm"
               title="Filter by gender"
             >
@@ -620,10 +626,19 @@ export default function CandidatesClient() {
                     <select
                       className="rounded-md border border-gray-300 px-3 py-2"
                       value={position}
-                      onChange={(e) => setPosition(e.target.value as any)}
+                      onChange={(e) => setPosition(e.target.value as Position)}
                       required
                     >
-                      {(["President","Vice President","Secretary","Treasurer","Auditor","Representative"] as Position[]).map((p) => (
+                      {(
+                        [
+                          "President",
+                          "Vice President",
+                          "Secretary",
+                          "Treasurer",
+                          "Auditor",
+                          "Representative",
+                        ] as Position[]
+                      ).map((p) => (
                         <option key={p} value={p}>
                           {p}
                         </option>

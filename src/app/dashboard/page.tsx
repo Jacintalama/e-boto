@@ -5,6 +5,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import Navbar from "../components/Navbar";
 import AdminAnalytics from "../components/AdminAnalytics";
+import ResetVotesButton from "../components/ResetVotesButton";
 
 type Level = "Elementary" | "JHS" | "SHS" | "College";
 type Position =
@@ -202,6 +203,9 @@ export default async function DashboardPage() {
           >
             Manage Candidates
           </a>
+
+          {/* 🔴 Danger action */}
+          <ResetVotesButton apiBase={apiBase} />
         </div>
       </main>
     </>

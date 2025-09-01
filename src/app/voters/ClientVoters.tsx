@@ -75,11 +75,16 @@ export default function ClientVoters() {
         throw new Error(msg);
       }
 
-      const data: Voter[] = await res.json();
-      data.forEach((d: any) => (d.status = d.status === 1 ? 1 : 0));
-      setRows(data);
-    } catch (e: any) {
-      setErr(e?.message || "Failed to load voters");
+      const data = (await res.json()) as Voter[];
+      const normalized: Voter[] = data.map(
+        (d): Voter => ({
+          ...d,
+          status: (d.status === 1 ? 1 : 0) as 0 | 1,
+        })
+      );
+      setRows(normalized);
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Failed to load voters");
     } finally {
       setLoading(false);
     }
@@ -123,6 +128,14 @@ export default function ClientVoters() {
     setForm((p) => ({ ...p, [k]: val }));
   }
 
+  type EditPayload = {
+    fullName: string;
+    course: string | null;
+    year: string;
+    status: 0 | 1;
+    password?: string;
+  };
+
   async function saveEdit(e: React.FormEvent) {
     e.preventDefault();
     if (!editing) return;
@@ -145,16 +158,16 @@ export default function ClientVoters() {
       }
     }
 
-    const payload: any = {
+    const payload: EditPayload = {
       fullName: form.fullName.trim(),
-      course: form.course.trim() || null,
+      course: form.course.trim() ? form.course.trim() : null,
       year: form.year.trim(),
       status: form.status,
+      ...(form.password ? { password: form.password } : {}),
     };
-    if (form.password) payload.password = form.password;
 
     try {
-      let r = await fetch(`/api/voters/${editing.id}`, {
+      const r = await fetch(`/api/voters/${editing.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -201,8 +214,8 @@ export default function ClientVoters() {
 
       setFormMsg("Changes saved.");
       setTimeout(() => closeEdit(), 600);
-    } catch (e: any) {
-      setFormErr(e?.message || "Failed to save changes");
+    } catch (e) {
+      setFormErr(e instanceof Error ? e.message : "Failed to save changes");
     } finally {
       setSaving(false);
     }
@@ -228,8 +241,8 @@ export default function ClientVoters() {
       if (!res.ok) throw new Error(await res.text());
 
       setRows((prev) => prev.filter((x) => x.id !== v.id));
-    } catch (e: any) {
-      alert(e?.message || "Failed to delete");
+    } catch (e) {
+      alert(e instanceof Error ? e.message : "Failed to delete");
     } finally {
       setDelId(null);
     }
@@ -301,7 +314,9 @@ export default function ClientVoters() {
             {/* status filter */}
             <select
               value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value as any)}
+              onChange={(e) =>
+                setStatusFilter(e.target.value as "all" | "voted" | "not")
+              }
               className="rounded-md border border-gray-300 px-2.5 py-1.5 text-sm"
               title="Filter by status"
             >
@@ -422,7 +437,6 @@ export default function ClientVoters() {
         defaultDepartment={level}
       />
 
-      {/* Edit Modal placeholder (your existing modal code) */}
       {/* Edit Modal */}
       {modalOpen && editing && (
         <div

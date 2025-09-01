@@ -65,23 +65,30 @@ const POSITIONS: Position[] = [
   "Representative",
 ];
 
+// helpers to keep type safety (no 'any')
+const LEVEL_FILTERS = ["All", ...LEVELS] as const;
+type LevelFilter = (typeof LEVEL_FILTERS)[number];
+function isPosition(x: string): x is Position {
+  return (POSITIONS as readonly string[]).includes(x);
+}
+
 export default function AdminAnalytics({
   stats,
   candidatesRaw,
   voteTallies,
-  votingOpenInitial, // 👈 NEW
+  votingOpenInitial,
 }: {
   stats: Stats;
   candidatesRaw: Candidate[];
   voteTallies: CandVoteCount[];
-  votingOpenInitial: boolean; // 👈 NEW
+  votingOpenInitial: boolean;
 }) {
-  const [levelFilter, setLevelFilter] = React.useState<"All" | Level>("All");
+  const [levelFilter, setLevelFilter] = React.useState<LevelFilter>("All");
   const [posFilter, setPosFilter] = React.useState<"All" | Position>(
     "President"
   );
 
-  // 👇 voting toggle state
+  // voting toggle state
   const [votingOpen, setVotingOpen] =
     React.useState<boolean>(votingOpenInitial);
   const [saving, setSaving] = React.useState(false);
@@ -100,6 +107,7 @@ export default function AdminAnalytics({
       setSaving(false);
     }
   }
+
   // Filter candidates by level (or All)
   const filteredCands = React.useMemo(() => {
     if (levelFilter === "All") return candidatesRaw;
@@ -139,10 +147,7 @@ export default function AdminAnalytics({
   const fmt = (n: number) => n.toLocaleString();
   const fmtPct = (n: number) => `${n.toFixed(1)}%`;
 
-  const topPartyCount = Math.max(
-    1,
-    ...(candCounts.byParty.map((p) => p.count) || [1])
-  );
+  const topPartyCount = Math.max(1, ...candCounts.byParty.map((p) => p.count));
 
   // Totals for the current view (All vs selected Level)
   const totalsForView = React.useMemo(() => {
@@ -169,21 +174,18 @@ export default function AdminAnalytics({
     );
   }, [voteTallies, levelFilter, posFilter]);
 
-  const totalVotesInFilter = filteredTallies.reduce(
-    (a, b) => a + (Number(b.votes) || 0),
-    0
-  );
+  // NOTE: removed unused totalVotesInFilter to satisfy no-unused-vars
 
   return (
     <section className="space-y-6">
       {/* Filter row */}
       <div className="flex items-center gap-2 flex-wrap">
         <span className="text-sm text-gray-600">Filter:</span>
-        {(["All", ...LEVELS] as const).map((lvl) => (
+        {LEVEL_FILTERS.map((lvl) => (
           <button
             key={lvl}
             type="button"
-            onClick={() => setLevelFilter(lvl as any)}
+            onClick={() => setLevelFilter(lvl)}
             className={`px-3 py-1.5 rounded-md border text-sm ${
               levelFilter === lvl
                 ? "bg-[#0F4C75] text-white border-[#0F4C75]"
@@ -201,7 +203,9 @@ export default function AdminAnalytics({
           <select
             className="border rounded-md text-sm px-2 py-1"
             value={posFilter}
-            onChange={(e) => setPosFilter(e.target.value as any)}
+            onChange={(e) =>
+              setPosFilter(isPosition(e.target.value) ? e.target.value : "All")
+            }
           >
             <option value="All">All</option>
             {POSITIONS.map((p) => (
@@ -212,6 +216,7 @@ export default function AdminAnalytics({
           </select>
         </div>
       </div>
+
       {/* Voting control */}
       <div className="rounded-xl border border-gray-200 bg-white p-5 flex items-center justify-between">
         <div>
@@ -278,37 +283,6 @@ export default function AdminAnalytics({
         />
       </div>
 
-      {/* Turnout by Level (overall) */}
-      {/* <div className="rounded-xl border border-gray-200 bg-white p-5">
-        <h3 className="text-base font-semibold mb-4">Turnout by Level</h3>
-        <div className="space-y-3">
-          {stats.byLevel.map((row) => (
-            <div key={row.level}>
-              <div className="flex items-center justify-between text-sm mb-1">
-                <span
-                  className={`font-medium ${
-                    levelFilter === row.level ? "text-[#0F4C75]" : ""
-                  }`}
-                >
-                  {row.level}
-                </span>
-                <span className="text-gray-600">
-                  {fmt(row.voted)}/{fmt(row.voters)} • {fmtPct(row.turnout)}
-                </span>
-              </div>
-              <div className="h-3 w-full rounded-md bg-gray-100 overflow-hidden">
-                <div
-                  className={`h-full transition-all ${
-                    levelFilter === row.level ? "bg-[#0C3D5E]" : "bg-[#0F4C75]"
-                  }`}
-                  style={{ width: `${Math.min(100, row.turnout)}%` }}
-                />
-              </div>
-            </div>
-          ))}
-        </div>
-      </div> */}
-
       {/* Candidates Breakdown (filtered by level) */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* by Position */}
@@ -334,7 +308,7 @@ export default function AdminAnalytics({
           </div>
         </div>
 
-        {/* Parties & Gender */}
+        {/* Parties */}
         <div className="rounded-xl border border-gray-200 bg-white p-5">
           <h3 className="text-base font-semibold mb-4">
             Parties{" "}
@@ -345,7 +319,6 @@ export default function AdminAnalytics({
             </span>
           </h3>
 
-          {/* Parties */}
           <div className="mb-4">
             <div className="flex items-center justify-between text-sm mb-2">
               <span className="font-medium">Top Parties</span>
@@ -376,36 +349,6 @@ export default function AdminAnalytics({
               ))}
             </div>
           </div>
-
-          {/* Gender */}
-          {/* <div>
-            <div className="flex items-center justify-between text-sm mb-2">
-              <span className="font-medium">Gender</span>
-            </div>
-            <div className="space-y-2">
-              {(["Male", "Female"] as const).map((g) => {
-                const total =
-                  candCounts.byGender.Male + candCounts.byGender.Female || 1;
-                const pct = Math.round(
-                  ((candCounts.byGender[g] || 0) / total) * 100
-                );
-                return (
-                  <div key={g}>
-                    <div className="flex items-center justify-between text-sm">
-                      <span>{g}</span>
-                      <b>{fmt(candCounts.byGender[g] || 0)}</b>
-                    </div>
-                    <div className="h-2 w-full rounded bg-gray-100 overflow-hidden">
-                      <div
-                        className="h-full bg-[#0F4C75]"
-                        style={{ width: `${pct}%` }}
-                      />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div> */}
         </div>
       </div>
 
@@ -436,16 +379,12 @@ export default function AdminAnalytics({
             ).indexOf(p);
 
           // filter same as table earlier
-          let rows = voteTallies.slice();
-          if (levelFilter !== "All")
-            rows = rows.filter((r) => r.level === levelFilter);
-          if (posFilter !== "All")
-            rows = rows.filter((r) => r.position === posFilter);
+          const rows = filteredTallies;
 
           // group by level+position
           const map = new Map<
             string,
-            { level: Level; position: Position; items: typeof rows }
+            { level: Level; position: Position; items: CandVoteCount[] }
           >();
           for (const r of rows) {
             const key = `${r.level}__${r.position}`;
@@ -453,7 +392,7 @@ export default function AdminAnalytics({
               map.set(key, {
                 level: r.level,
                 position: r.position,
-                items: [] as any,
+                items: [] as CandVoteCount[],
               });
             map.get(key)!.items.push(r);
           }
@@ -476,8 +415,7 @@ export default function AdminAnalytics({
                   .slice()
                   .sort(
                     (a, b) =>
-                      (b.votes as number) - (a.votes as number) ||
-                      a.lastName.localeCompare(b.lastName)
+                      b.votes - a.votes || a.lastName.localeCompare(b.lastName)
                   );
 
                 const totalVotes = items.reduce(

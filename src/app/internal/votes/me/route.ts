@@ -1,6 +1,6 @@
 export const runtime = "nodejs";
 
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 
 const API_BASE =
@@ -8,9 +8,11 @@ const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE_URL ||
   "http://localhost:4000";
 
-export async function GET(_req: NextRequest) {
-  const token = (await cookies()).get("token")?.value || "";
-  if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+export async function GET() {
+  const token = (await cookies()).get("token")?.value ?? "";
+  if (!token) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
 
   const upstream = await fetch(`${API_BASE}/api/votes/me`, {
     headers: {

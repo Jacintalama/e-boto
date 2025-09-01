@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
   let candidateId: string | null = null;
 
   if (ct.includes("application/json")) {
-    const body = await req.json().catch(() => ({} as any));
+   const body = (await req.json().catch(() => ({}))) as Record<string, unknown>;
     candidateId = (body?.candidateId ?? body?.id ?? body?.candidate_id ?? "").toString().trim() || null;
   } else {
     const form = await req.formData().catch(() => null);

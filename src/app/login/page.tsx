@@ -6,7 +6,12 @@ import Image from "next/image";
 
 type LoginResponse = {
   role?: "admin" | "student" | string;
-  user?: { id: string | number; username?: string; schoolId?: string; role?: string };
+  user?: {
+    id: string | number;
+    username?: string;
+    schoolId?: string;
+    role?: string;
+  };
   error?: string;
 };
 
@@ -75,25 +80,29 @@ export default function LoginPage() {
         signal: controller.signal,
       });
 
-      clearTimeout(t);
-      const j: LoginResponse = await r.json().catch(() => ({} as any));
+      const j = (await r.json().catch(() => ({}))) as LoginResponse; // ⬅️ no `any`
       if (!r.ok) throw new Error(j?.error || "Login failed");
 
       let role = (j.role || j.user?.role || "").toString().toLowerCase();
       if (role !== "admin" && role !== "student") {
-        const meRes = await fetch("/api/auth/me", { credentials: "include", cache: "no-store" });
+        const meRes = await fetch("/api/auth/me", {
+          credentials: "include",
+          cache: "no-store",
+        });
         if (meRes.ok) {
           const me = await meRes.json();
           role = String(me?.user?.role || "").toLowerCase();
         }
       }
-      if (role !== "admin" && role !== "student") throw new Error("Role missing");
+      if (role !== "admin" && role !== "student")
+        throw new Error("Role missing");
 
       const fallback = ROLE_TO_DEFAULT_PATH[role as "admin" | "student"];
       router.replace(nextSafe || fallback);
-    } catch (e: any) {
-      setErr(e?.message || "Login failed");
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Login failed"); // ⬅️ no `any`
     } finally {
+      clearTimeout(t); // make sure timer is cleared even on error
       setLoading(false);
     }
   }
@@ -138,7 +147,9 @@ export default function LoginPage() {
             WELCOME TO SIS E-BOTO
           </h1>
 
-          <label className="mb-1 block text-xs font-medium text-slate-700">School ID</label>
+          <label className="mb-1 block text-xs font-medium text-slate-700">
+            School ID
+          </label>
           <input
             value={username}
             onChange={(e) => setUsername(e.target.value)}
@@ -148,7 +159,9 @@ export default function LoginPage() {
             className="mb-3 w-full rounded-lg border border-slate-300 px-3 py-2 text-[15px] outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-200"
           />
 
-          <label className="mb-1 block text-xs font-medium text-slate-700">Password</label>
+          <label className="mb-1 block text-xs font-medium text-slate-700">
+            Password
+          </label>
           <input
             type="password"
             value={password}
@@ -160,7 +173,10 @@ export default function LoginPage() {
           />
 
           <div className="mb-3">
-            <a href="/forgot-password" className="text-sm text-sky-600 hover:underline">
+            <a
+              href="/forgot-password"
+              className="text-sm text-sky-600 hover:underline"
+            >
               Forgot Password?
             </a>
           </div>

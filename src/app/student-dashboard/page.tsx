@@ -1,3 +1,4 @@
+// src/app/student-dashboard/page.tsx
 export const runtime = "nodejs";
 
 import { cookies } from "next/headers";
@@ -75,7 +76,7 @@ function inferLevelFromYear(year?: string | null): Level | null {
 
 export default async function StudentDashboard() {
   // auth
-  const cookieStore = await cookies(); // keep await if your setup returns a Promise
+  const cookieStore = await cookies();
   const token = cookieStore.get("token")?.value;
   if (!token) redirect("/login?next=/student-dashboard");
 
@@ -119,11 +120,15 @@ export default async function StudentDashboard() {
 
   const raw: CandidateApi[] = candRes && candRes.ok ? await candRes.json() : [];
 
+  // Build a type compatible with StudentLevelCandidates props
+  type ItemsProp = React.ComponentProps<
+    typeof StudentLevelCandidates
+  >["items"];
+
   // Normalize each candidate, with fallback inference (for legacy rows)
-  const normalized = raw.map((a) => {
-    const levelNorm = normLevel(
-      typeof a.level === "string" ? a.level : (a.level as any)
-    );
+  const normalized: ItemsProp = raw.map((a) => {
+    const levelRaw = a.level == null ? null : String(a.level);
+    const levelNorm = normLevel(levelRaw);
     const yr = normalizeYear(a.year);
     const levelFinal = levelNorm || inferLevelFromYear(yr);
     return {
@@ -139,9 +144,7 @@ export default async function StudentDashboard() {
       photo:
         a.photoUrl ??
         (a.photoPath
-          ? a.photoPath.startsWith("/uploads")
-            ? a.photoPath
-            : a.photoPath
+          ? a.photoPath
           : null),
     };
   });
@@ -172,7 +175,6 @@ export default async function StudentDashboard() {
   const canVote = Boolean(votingStatus.open);
 
   return (
-    // Wrapper also uses the same BG—seamless with body
     <div className="min-h-screen bg-slate-50">
       <Navbar />
 
@@ -180,7 +182,7 @@ export default async function StudentDashboard() {
       <header className="w-full bg-slate-50">
         <div className="max-w-[1200px] mx-auto px-6 py-12 text-center">
           <Image
-            src="/stratford logo.png" // put this exact file in /public
+            src="/stratford logo.png"
             alt="Stratford International School Logo"
             width={320}
             height={320}
@@ -220,13 +222,12 @@ export default async function StudentDashboard() {
           </div>
 
           {!canVote ? (
-            // 🔒 Voting closed: hide list; show notice
             <div className="rounded-lg border border-yellow-300 bg-yellow-50 p-3 text-sm text-yellow-800">
               Voting is currently <b>closed</b>. Please check back later.
             </div>
           ) : !studentLevel ? (
             <div className="rounded-lg border border-yellow-300 bg-yellow-50 p-3 text-sm text-yellow-800">
-              We couldn't determine your department. Please contact the admin to update your profile.
+              We couldn&apos;t determine your department. Please contact the admin to update your profile.
             </div>
           ) : candRes && !candRes.ok ? (
             <div className="rounded-lg border border-red-300 bg-red-50 p-3 text-sm text-red-800">
@@ -237,7 +238,7 @@ export default async function StudentDashboard() {
               No candidates available for <b>{studentLevel}</b> yet.
             </div>
           ) : (
-            <StudentLevelCandidates items={filtered as any} voted={votedMap} canVote={canVote} />
+            <StudentLevelCandidates items={filtered} voted={votedMap} canVote={canVote} />
           )}
         </section>
       </main>
